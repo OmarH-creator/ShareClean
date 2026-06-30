@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shareclean"
+version = "0.1.0"
+description = "Local-first CLI for sanitizing logs, stack traces, and text before sharing."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+  {name = "Omar Hassan Elsayed"},
+]
+keywords = [
+  "cli",
+  "logs",
+  "privacy",
+  "redaction",
+  "security",
+  "secrets",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Security",
+  "Topic :: Software Development :: Debuggers",
+  "Topic :: Text Processing",
+  "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/OmarH-creator/ShareClean"
+Repository = "https://github.com/OmarH-creator/ShareClean"
+Issues = "https://github.com/OmarH-creator/ShareClean/issues"
+Changelog = "https://github.com/OmarH-creator/ShareClean/blob/main/CHANGELOG.md"
+Security = "https://github.com/OmarH-creator/ShareClean/security"
+
+[project.scripts]
+shareclean = "shareclean.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.package-data]
+shareclean = ["py.typed"]

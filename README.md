@@ -1,45 +1,98 @@
 # ShareClean
 
-> Local-first Python CLI that sanitizes logs, stack traces, and text before you share them publicly.
+[![CI](https://github.com/OmarH-creator/ShareClean/actions/workflows/ci.yml/badge.svg)](https://github.com/OmarH-creator/ShareClean/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-ShareClean scans your text for common secrets and personal identifiers — passwords, API keys, emails, local paths, tokens — replaces only the sensitive parts, and reports exactly what it changed. Everything runs locally. Nothing is uploaded.
+Local-first Python CLI for sanitizing logs, stack traces, configuration snippets, and terminal output before you share them publicly.
 
-## Why
+ShareClean detects common sensitive values, replaces only the risky portion, and reports what changed without storing or printing the original secret. It has no runtime dependencies, makes no network calls, and sends no telemetry.
 
-When debugging, it's easy to accidentally paste a `.env` value, a connection string with a password, or a file path containing your username into a GitHub issue, AI chat, or support ticket. ShareClean is the quick safety check you run before hitting send.
+## Why ShareClean?
+
+Debugging often means pasting logs into GitHub issues, support tickets, AI chats, and Slack threads. Those logs can accidentally contain passwords, API keys, connection strings, local usernames, email addresses, or tokens.
+
+ShareClean is the quick local safety pass you run before posting.
 
 ## Features
 
-- Redacts key-value secrets (`password=`, `api_key:`, `token=`, etc.)
-- Redacts connection string passwords (`postgresql://user:pass@host/db`)
-- Redacts Bearer tokens and JWT-like strings
-- Redacts email addresses
-- Redacts local usernames from file paths (Windows & Unix)
-- Optionally redacts private IP addresses
-- Human-readable or JSON report of every change
-- `--check` mode for CI pipelines and Git hooks
-- Standard library only — no dependencies to install
+- Redacts key-value secrets such as `password=`, `api_key:`, `token=`, and `client_secret=`
+- Redacts connection string passwords while preserving scheme, user, host, port, and database
+- Redacts Bearer tokens and JWT-like values
+- Redacts email addresses by default, with `--no-email` available when email context matters
+- Redacts local usernames from Windows, Linux, and macOS-style paths
+- Optionally redacts RFC 1918 private IP addresses with `--redact-private-ip`
+- Emits human-readable or JSON reports
+- Supports `--check` mode for CI, hooks, and pre-share workflows
+- Uses only the Python standard library at runtime
 
-## Usage
+## Install
+
+From a local checkout:
 
 ```bash
-# Scan a file, print sanitized output
-python -m shareclean app.log
-
-# Pipe from stdin
-type app.log | python -m shareclean
-
-# Save sanitized output to a new file
-python -m shareclean app.log --output app.cleaned.log
-
-# Show a report of what was changed
-python -m shareclean app.log --report
-
-# Check mode — exit code 1 if findings detected
-python -m shareclean app.log --check
+python -m pip install -e .
 ```
 
-## What it detects
+Directly from GitHub:
+
+```bash
+python -m pip install git+https://github.com/OmarH-creator/ShareClean.git
+```
+
+You can also run it without installing from the repository root:
+
+```bash
+python -m shareclean --help
+```
+
+## Quick Start
+
+Sanitize a file and print the cleaned text:
+
+```bash
+shareclean app.log
+```
+
+Pipe from stdin:
+
+```bash
+cat app.log | shareclean
+```
+
+On Windows PowerShell:
+
+```powershell
+Get-Content .\app.log -Raw | shareclean
+```
+
+Write sanitized output to a new file:
+
+```bash
+shareclean app.log --output app.cleaned.log
+```
+
+Print a full report to stderr:
+
+```bash
+shareclean app.log --report
+```
+
+Emit a machine-readable report:
+
+```bash
+shareclean app.log --report --report-format json
+```
+
+Use check mode for CI or hooks:
+
+```bash
+shareclean app.log --check
+```
+
+`--check` exits with code `1` when findings are detected and never writes sanitized text to stdout.
+
+## What It Detects
 
 | Pattern | Example input | Output |
 |---|---|---|
@@ -49,26 +102,66 @@ python -m shareclean app.log --check
 | Bearer token | `Authorization: Bearer eyJ...` | `Authorization: Bearer [REDACTED]` |
 | JWT-like token | `xxx.yyy.zzz` | `[JWT REDACTED]` |
 | Email address | `user@example.com` | `[EMAIL REDACTED]` |
-| Windows path | `C:\Users\Alice\work` | `C:\Users\[USER]\work` |
-| Unix path | `/home/alice/project` | `/home/[USER]/project` |
+| Windows user path | `C:\Users\Alice\work` | `C:\Users\[USER]\work` |
+| Unix user path | `/home/alice/project` | `/home/[USER]/project` |
+| Private IP address | `192.168.1.20` | `[PRIVATE-IP]` when enabled |
 
-## Limitations
+See [docs/detection-rules.md](docs/detection-rules.md) for more detail.
 
-ShareClean uses pattern-based detection. It may miss secrets in unusual formats and may redact text that is not sensitive. It does not upload your input, validate credentials against external services, or guarantee that output is safe to share. Always inspect the sanitized output before posting it publicly.
+## CLI Reference
+
+```text
+usage: shareclean [-h] [--check] [--output FILE] [--report]
+                  [--report-format {text,json}] [--no-email]
+                  [--redact-private-ip]
+                  [FILE]
+```
+
+Exit codes:
+
+| Code | Meaning |
+|---:|---|
+| `0` | Completed successfully |
+| `1` | Findings detected in `--check` mode |
+| `2` | User or I/O error |
+| `3` | Unexpected internal error |
+
+## Safety Model
+
+ShareClean is intentionally local and transparent:
+
+- No network calls
+- No cloud processing
+- No telemetry
+- No account or API key required
+- Original matched secret values are not stored in findings or reports
+- Input files are never modified in place
+
+ShareClean is pattern-based. It can miss unusual formats and can redact benign text that resembles a secret. Always inspect sanitized output before sharing it publicly.
 
 ## Development
 
+Run the test suite:
+
 ```bash
-# Run tests
 python -m unittest discover -s tests -v
 ```
 
-Requires Python 3.10+. No third-party packages needed.
+Run basic packaging and import checks:
 
-## Security
+```bash
+python -m compileall -q src tests
+python -m pip wheel . --no-deps --wheel-dir dist-check
+```
 
-See [SECURITY.md](SECURITY.md) for the security policy and reporting instructions.
+The project uses only the Python standard library at runtime and for tests.
+
+## Contributing
+
+Bug reports, detector improvements, and documentation fixes are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md).
+
+For security-sensitive issues, please read [SECURITY.md](SECURITY.md) before opening a public issue.
 
 ## License
 
-MIT
+ShareClean is released under the [MIT License](LICENSE).

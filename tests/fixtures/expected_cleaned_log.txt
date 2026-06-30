@@ -1,0 +1,10 @@
+2024-05-14 08:12:01 INFO  App starting up - version 2.3.1
+2024-05-14 08:12:01 INFO  Loading configuration from /home/[USER]/app/config.yml
+2024-05-14 08:12:02 DEBUG Database DSN: postgresql://fakeuser:[REDACTED]@db.example.com/appdb
+2024-05-14 08:12:02 INFO  Connected to database successfully
+2024-05-14 08:12:03 DEBUG api_key=[REDACTED] loaded from environment
+2024-05-14 08:12:04 INFO  Authenticating request from [EMAIL REDACTED]
+2024-05-14 08:12:04 DEBUG Authorization: Bearer [REDACTED]
+2024-05-14 08:12:05 DEBUG Decoded payload: [JWT REDACTED]
+2024-05-14 08:12:06 INFO  Request processed successfully
+2024-05-14 08:12:07 INFO  Shutting down gracefully

@@ -1,0 +1,57 @@
+name: Bug report
+description: Report incorrect behavior in ShareClean.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Do not include real secrets, production logs, credentials, or customer data.
+  - type: input
+    id: version
+    attributes:
+      label: ShareClean version
+      description: Use a version number or commit SHA.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: "3.12.4"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: fake-input
+    attributes:
+      label: Minimal fake input
+      description: Use fake values only.
+      render: text
+      placeholder: "password=fake-secret-value"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
