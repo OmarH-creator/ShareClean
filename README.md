@@ -3,16 +3,59 @@
 [![CI](https://github.com/OmarH-creator/ShareClean/actions/workflows/ci.yml/badge.svg)](https://github.com/OmarH-creator/ShareClean/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
+[![Release](https://img.shields.io/github/v/release/OmarH-creator/ShareClean)](https://github.com/OmarH-creator/ShareClean/releases)
 
-Local-first Python CLI for sanitizing logs, stack traces, configuration snippets, and terminal output before you share them publicly.
+Local-first Python CLI for sanitizing logs, stack traces, config snippets, and terminal output before you paste them into GitHub issues, support tickets, Slack, or AI chats.
 
 ShareClean detects common sensitive values, replaces only the risky portion, and reports what changed without storing or printing the original secret. It has no runtime dependencies, makes no network calls, and sends no telemetry.
+
+![ShareClean terminal demo](docs/assets/shareclean-demo.svg)
+
+## 10-Second Demo
+
+```bash
+cat app.log | shareclean --report
+```
+
+Input:
+
+```text
+user=user@example.com
+password=fake-secret-value
+postgresql://app:fake-pass@db.example.com/app
+```
+
+Output:
+
+```text
+user=[EMAIL REDACTED]
+password=[REDACTED]
+postgresql://app:[REDACTED]@db.example.com/app
+```
+
+Report:
+
+```text
+3 replacement(s) made.
+```
 
 ## Why ShareClean?
 
 Debugging often means pasting logs into GitHub issues, support tickets, AI chats, and Slack threads. Those logs can accidentally contain passwords, API keys, connection strings, local usernames, email addresses, or tokens.
 
 ShareClean is the quick local safety pass you run before posting.
+
+## When To Use It
+
+- Before sharing logs, traceback output, terminal transcripts, `.env` snippets, or config fragments.
+- In a pre-share script, Git hook, or CI check where sanitized text should stay local.
+- When you want context-preserving redaction instead of deleting whole lines.
+
+## How It Is Different
+
+ShareClean is not a repository secret scanner. Tools like dedicated repo scanners are better for finding committed credentials across source history.
+
+ShareClean is for the smaller everyday moment: "I am about to paste this text somewhere public. Can I make it safer first?"
 
 ## Features
 
@@ -28,6 +71,12 @@ ShareClean is the quick local safety pass you run before posting.
 
 ## Install
 
+With `pipx`:
+
+```bash
+pipx install git+https://github.com/OmarH-creator/ShareClean.git@v0.1.0
+```
+
 From a local checkout:
 
 ```bash
@@ -37,7 +86,7 @@ python -m pip install -e .
 Directly from GitHub:
 
 ```bash
-python -m pip install git+https://github.com/OmarH-creator/ShareClean.git
+python -m pip install git+https://github.com/OmarH-creator/ShareClean.git@v0.1.0
 ```
 
 You can also run it without installing from the repository root:
@@ -161,6 +210,8 @@ The project uses only the Python standard library at runtime and for tests.
 Bug reports, detector improvements, and documentation fixes are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md).
 
 For security-sensitive issues, please read [SECURITY.md](SECURITY.md) before opening a public issue.
+
+See [ROADMAP.md](ROADMAP.md) for planned next steps.
 
 ## License
 
