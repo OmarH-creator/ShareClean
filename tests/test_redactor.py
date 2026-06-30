@@ -116,14 +116,14 @@ class TestFixtureIntegration(unittest.TestCase):
     """Fixture-based end-to-end coverage for the default redaction rules."""
 
     def test_sample_log_matches_expected_cleaned_output(self):
-        sample = (FIXTURE_DIR / "sample_log.txt").read_text(
+        with open(FIXTURE_DIR / "sample_log.txt", encoding="utf-8", newline="") as fh:
+            sample = fh.read()
+        with open(
+            FIXTURE_DIR / "expected_cleaned_log.txt",
             encoding="utf-8",
             newline="",
-        )
-        expected = (FIXTURE_DIR / "expected_cleaned_log.txt").read_text(
-            encoding="utf-8",
-            newline="",
-        )
+        ) as fh:
+            expected = fh.read()
 
         result = sanitize(sample, get_rules())
 
