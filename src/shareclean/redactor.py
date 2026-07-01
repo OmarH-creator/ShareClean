@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 
 from shareclean.detectors import Rule, SEVERITY_RANK
@@ -14,7 +13,6 @@ class _Candidate:
     rule: Rule
     start: int
     end: int
-    match: re.Match[str]
 
     @property
     def severity_rank(self) -> int:
@@ -59,10 +57,12 @@ def _collect_candidates(text: str, rules: list[Rule]) -> list[_Candidate]:
     candidates: list[_Candidate] = []
     for rule in rules:
         for match in rule.pattern.finditer(text):
+            if not rule.is_valid(match):
+                continue
             start, end = rule.redact_span(match)
             if start == end:
                 continue
-            candidates.append(_Candidate(rule=rule, start=start, end=end, match=match))
+            candidates.append(_Candidate(rule=rule, start=start, end=end))
     return candidates
 
 

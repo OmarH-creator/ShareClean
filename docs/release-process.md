@@ -42,6 +42,11 @@ The release workflow uses `pypa/gh-action-pypi-publish@release/v1` with job-leve
    ```bash
    python -m build
    python -m twine check dist/*
+   python -m venv .venv-smoke
+   . .venv-smoke/bin/activate
+   python -m pip install dist/*.whl
+   shareclean --version
+   shareclean config show
    ```
 
 6. Smoke test the CLI:
@@ -68,9 +73,10 @@ The release workflow uses `pypa/gh-action-pypi-publish@release/v1` with job-leve
    - Run the test matrix.
    - Build exactly once with `python -m build`.
    - Run `twine check dist/*`.
+   - Install the built wheel in a clean environment and run `shareclean --version` plus `shareclean config show`.
    - Upload the exact `dist/` files as an artifact.
    - Publish that artifact to TestPyPI.
-   - Smoke install the exact version from TestPyPI.
+   - Smoke install the exact version from TestPyPI with `pipx`.
    - Wait for protected `pypi` environment approval.
    - Publish the same artifact to production PyPI.
 
@@ -81,4 +87,5 @@ Production PyPI publishing is skipped for GitHub prereleases.
 - Verify `pipx install shareclean` works on Windows, macOS, and Linux.
 - Verify `shareclean --version` matches the release tag.
 - Verify the GitHub Release workflow published the expected artifacts.
+- Do not rerun successful publish jobs for the same tag unless you expect PyPI to reject the already-published immutable version.
 - Open follow-up issues for anything intentionally deferred.

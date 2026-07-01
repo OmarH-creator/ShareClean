@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from shareclean.config import ConfigError, load_config
 
@@ -129,6 +131,19 @@ class TestProfilesAndPrecedence(unittest.TestCase):
 
 
 class TestEnvironmentParsing(unittest.TestCase):
+    def test_explicit_empty_environment_ignores_process_environment(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict(
+                os.environ,
+                {
+                    "SHARECLEAN_REDACT_EMAIL": "false",
+                    "SHARECLEAN_REDACT_PRIVATE_IP": "true",
+                },
+            ):
+                config = load_config(environ={}, start=Path(tmp))
+        self.assertTrue(config.redact_email)
+        self.assertFalse(config.redact_private_ip)
+
     def test_boolean_environment_values(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             config = load_config(

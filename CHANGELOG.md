@@ -4,6 +4,19 @@ All notable changes to ShareClean will be documented in this file.
 
 This project follows a simple release format inspired by Keep a Changelog and uses semantic versioning for public releases.
 
+## Unreleased
+
+### Fixed
+
+- Preserve deterministic config loading when callers pass an explicit empty environment mapping.
+- Avoid retaining regex match objects after detector span extraction.
+- Avoid private-IP false positives for invalid IPv4 addresses.
+
+### Changed
+
+- Release workflow smoke tests now install the built wheel before artifact upload and use `pipx` for the TestPyPI installation check.
+- Documented that configured check policies apply only in `--check` mode.
+
 ## 0.2.0 - 2026-07-02
 
 ### Added

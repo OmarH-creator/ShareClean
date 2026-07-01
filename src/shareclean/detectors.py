@@ -6,6 +6,7 @@ labels. They never hold or return original matched values.
 
 from __future__ import annotations
 
+import ipaddress
 import re
 from dataclasses import dataclass
 from typing import Callable
@@ -14,6 +15,7 @@ DEFAULT_REDACTION_LABEL = "[REDACTED]"
 
 Severity = str
 SpanGetter = Callable[[re.Match[str]], tuple[int, int]]
+MatchValidator = Callable[[re.Match[str]], bool]
 
 VALID_CATEGORIES = frozenset({
     "credential",
@@ -45,6 +47,7 @@ class Rule:
     replacement: str
     specificity: int
     redact_span: SpanGetter = lambda m: m.span()
+    is_valid: MatchValidator = lambda m: True
 
 
 def _group_span(name: str) -> SpanGetter:
@@ -100,6 +103,14 @@ _PRIVATE_IP_PATTERN = re.compile(
     r"|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}"
     r"|192\.168\.\d{1,3}\.\d{1,3})\b"
 )
+
+
+def _is_valid_private_ip(match: re.Match[str]) -> bool:
+    try:
+        address = ipaddress.ip_address(match.group(0))
+    except ValueError:
+        return False
+    return address.version == 4 and address.is_private
 
 
 def _private_key_rule() -> Rule:
@@ -205,6 +216,7 @@ _PRIVATE_IP = Rule(
     pattern=_PRIVATE_IP_PATTERN,
     replacement="[PRIVATE-IP]",
     specificity=30,
+    is_valid=_is_valid_private_ip,
 )
 
 

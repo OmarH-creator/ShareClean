@@ -87,6 +87,17 @@ class TestNormalMode(unittest.TestCase):
         self.assertEqual(out, "")
         self.assertIn("File not found", err)
 
+    def test_configured_check_policy_does_not_fail_normal_sanitization(self) -> None:
+        path = _write_tempfile("password=fake-secret-value\n")
+        try:
+            with patch.dict(os.environ, {"SHARECLEAN_FAIL_ON": "severity:high"}):
+                code, out, err = run_cli(path)
+            self.assertEqual(code, 0)
+            self.assertIn("password=[REDACTED]", out)
+            self.assertIn("replacement(s) made", err)
+        finally:
+            os.unlink(path)
+
 
 class TestRedactionFlags(unittest.TestCase):
     def test_no_email_alias_disables_email_detection(self) -> None:

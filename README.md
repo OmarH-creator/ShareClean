@@ -51,6 +51,8 @@ shareclean app.log --check --ignore-for-check category:pii_email
 
 `--check` exits `1` only for findings selected by the check policy and never writes sanitized text to stdout.
 
+Configured `fail_on` and `ignore_for_check` policies from config files, profiles, or environment variables apply only in `--check` mode. Normal sanitization still redacts and reports findings, but those policies do not change the exit decision unless `--check` is present.
+
 ## Configuration
 
 ShareClean supports committed project policy in either `pyproject.toml` or `.shareclean.toml`.

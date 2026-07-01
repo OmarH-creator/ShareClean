@@ -92,6 +92,18 @@ jobs:
       - name: Validate distributions
         run: python -m twine check dist/*
 
+      - name: Smoke install built wheel
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+          python -m venv .venv-smoke
+          . .venv-smoke/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install dist/*.whl
+          shareclean --version | grep "${VERSION}"
+          shareclean config show
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+
       - name: Upload release distributions
         uses: actions/upload-artifact@v5
         with:
@@ -131,14 +143,15 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Install exact release from TestPyPI
+      - name: Pipx install exact release from TestPyPI
         run: |
           VERSION="${RELEASE_TAG#v}"
+          python -m pip install --upgrade pip pipx
+          export PATH="$HOME/.local/bin:$PATH"
           for attempt in 1 2 3 4 5; do
-            python -m pip install --upgrade pip
-            if python -m pip install \
+            if python -m pipx install \
               --index-url https://test.pypi.org/simple/ \
-              --extra-index-url https://pypi.org/simple/ \
+              --pip-args="--extra-index-url https://pypi.org/simple/" \
               "shareclean==${VERSION}"; then
               break
             fi
@@ -148,6 +161,7 @@ jobs:
             sleep 20
           done
           shareclean --version | grep "${VERSION}"
+          shareclean config show
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
 

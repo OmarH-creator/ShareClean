@@ -103,6 +103,16 @@ class TestDetectorRedaction(unittest.TestCase):
             "[PRIVATE-IP]",
         )
 
+    def test_invalid_private_ip_is_not_redacted(self) -> None:
+        self.assertEqual(
+            _sanitize_with_rule(
+                "SC007",
+                "192.168.999.999",
+                redact_private_ip=True,
+            ),
+            "192.168.999.999",
+        )
+
     def test_private_key_block_redacted(self) -> None:
         text = (
             "-----BEGIN PRIVATE KEY-----\n"

@@ -290,7 +290,8 @@ def load_config(
     base_values, profiles = _validate_table(path, table, profile_table=False)
     config = _apply_values(ShareCleanConfig(), base_values)
 
-    env_values, env_profile = _env_values(environ or dict(os.environ))
+    environment = dict(os.environ) if environ is None else environ
+    env_values, env_profile = _env_values(environment)
     selected_profile = config.profile
     if env_profile is not None:
         selected_profile = env_profile
