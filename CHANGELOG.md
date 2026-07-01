@@ -6,6 +6,8 @@ This project follows a simple release format inspired by Keep a Changelog and us
 
 ## Unreleased
 
+## 0.2.1 - 2026-07-02
+
 ### Fixed
 
 - Preserve deterministic config loading when callers pass an explicit empty environment mapping.

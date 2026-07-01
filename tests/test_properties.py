@@ -1,4 +1,4 @@
-"""Broad invariant tests for ShareClean v0.2.0."""
+"""Broad invariant tests for ShareClean."""
 
 from __future__ import annotations
 

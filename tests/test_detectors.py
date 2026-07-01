@@ -1,4 +1,4 @@
-"""Detector tests for ShareClean v0.2.0 metadata."""
+"""Detector tests for ShareClean metadata."""
 
 from __future__ import annotations
 

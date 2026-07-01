@@ -1,4 +1,4 @@
-"""Configuration tests for ShareClean v0.2.0."""
+"""Configuration tests for ShareClean."""
 
 from __future__ import annotations
 

@@ -20,9 +20,9 @@ The release workflow uses `pypa/gh-action-pypi-publish@release/v1` with job-leve
 2. Confirm the Git tag, `pyproject.toml`, and `shareclean --version` normalize to the same version:
 
    ```text
-   tag: v0.2.0
-   package: 0.2.0
-   CLI: 0.2.0
+   tag: vX.Y.Z
+   package: X.Y.Z
+   CLI: X.Y.Z
    ```
 
 3. Run the full test suite:

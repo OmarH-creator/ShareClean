@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "shareclean"
-version = "0.2.0"
+version = "0.2.1"
 description = "Local-first CLI for sanitizing logs, stack traces, and text before sharing."
 readme = "README.md"
 requires-python = ">=3.10"

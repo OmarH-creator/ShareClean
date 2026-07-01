@@ -1,4 +1,4 @@
-"""CLI integration tests for ShareClean v0.2.0."""
+"""CLI integration tests for ShareClean."""
 
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ class TestVersionFlag(unittest.TestCase):
             with self.assertRaises(SystemExit) as ctx:
                 main()
         self.assertEqual(ctx.exception.code, 0)
-        self.assertIn("shareclean 0.2.0", stdout.getvalue())
+        self.assertIn("shareclean 0.2.1", stdout.getvalue())
         self.assertEqual(stderr.getvalue(), "")
 
 
