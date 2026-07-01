@@ -1,0 +1,2 @@
+token=xoxb-fake-slack-token-for-testing
+secret=fake-webhook-secret-for-testing

@@ -1,41 +1,75 @@
 """Report formatting for ShareClean.
 
-Formats a SanitizeResult for human-readable or machine-readable output.
-Neither function ever includes the original matched value.
+Reports never include original matched values, hashes, snippets, masked
+previews, filenames, or full paths.
 """
 
 from __future__ import annotations
 
 import json
+from collections import Counter
+from typing import Any
 
-from shareclean.models import SanitizeResult
+from shareclean.models import Finding, SanitizeResult
+
+SCHEMA_VERSION = "1.0"
 
 _DISCLAIMER = (
-    "NOTE: This report lists only what was redacted and where. "
-    "The original sensitive values are never stored or displayed."
+    "NOTE: This report lists only safe metadata. Original sensitive values, "
+    "hashes, snippets, filenames, and paths are never displayed."
 )
 
 
+def safe_source(input_name: str) -> str:
+    """Return the privacy-preserving source label for report output."""
+    return "stdin" if input_name == "stdin" else "file"
+
+
+def _summary(result: SanitizeResult) -> dict[str, Any]:
+    by_category = Counter(finding.category for finding in result.findings)
+    by_severity = Counter(finding.severity for finding in result.findings)
+    return {
+        "findings": result.replacement_count,
+        "by_category": dict(sorted(by_category.items())),
+        "by_severity": dict(sorted(by_severity.items())),
+    }
+
+
+def _location_payload(finding: Finding) -> dict[str, dict[str, int]]:
+    return {
+        "start": {
+            "line": finding.location.start.line,
+            "column": finding.location.start.column,
+        },
+        "end": {
+            "line": finding.location.end.line,
+            "column": finding.location.end.column,
+        },
+    }
+
+
 def format_text_report(result: SanitizeResult, input_name: str) -> str:
-    """Return a human-readable report of all findings.
-
-    Args:
-        result:     The SanitizeResult from sanitize().
-        input_name: The name of the input (file path or "stdin").
-
-    Returns:
-        A multi-line string suitable for printing to stderr.
-    """
+    """Return a human-readable report of all findings."""
     lines: list[str] = [
         "ShareClean Report",
-        f"Input: {input_name}",
-        f"Replacements made: {result.replacement_count}",
+        f"Source: {safe_source(input_name)}",
+        f"Findings: {result.replacement_count}",
         "",
     ]
+    if result.findings:
+        lines.append("By category:")
+        for category, count in _summary(result)["by_category"].items():
+            lines.append(f"  {category}: {count}")
+        lines.append("")
+        lines.append("Findings:")
+
     for finding in result.findings:
+        start = finding.location.start
+        end = finding.location.end
         lines.append(
-            f"  Line {finding.line_number}: [{finding.rule_id}] "
-            f"{finding.category} -> {finding.replacement}"
+            f"  {finding.rule_id} {finding.category} {finding.severity} "
+            f"line {start.line}, column {start.column} "
+            f"to line {end.line}, column {end.column} -> {finding.replacement}"
         )
     if result.findings:
         lines.append("")
@@ -44,40 +78,25 @@ def format_text_report(result: SanitizeResult, input_name: str) -> str:
 
 
 def format_json_report(result: SanitizeResult, input_name: str) -> str:
-    """Return a JSON-encoded report of all findings.
-
-    The JSON schema matches the design document specification.
-
-    Args:
-        result:     The SanitizeResult from sanitize().
-        input_name: The name of the input (file path or "stdin").
-
-    Returns:
-        A JSON string.
-    """
+    """Return a JSON-encoded report using schema version 1.0."""
     payload = {
-        "input_name": input_name,
-        "finding_count": result.replacement_count,
+        "schema_version": SCHEMA_VERSION,
+        "source": safe_source(input_name),
+        "summary": _summary(result),
         "findings": [
             {
-                "rule_id": f.rule_id,
-                "category": f.category,
-                "line_number": f.line_number,
-                "replacement": f.replacement,
+                "rule_id": finding.rule_id,
+                "category": finding.category,
+                "severity": finding.severity,
+                "location": _location_payload(finding),
+                "replacement": finding.replacement,
             }
-            for f in result.findings
+            for finding in result.findings
         ],
     }
     return json.dumps(payload, indent=2)
 
 
 def format_brief_count(result: SanitizeResult) -> str:
-    """Return a one-line summary of how many replacements were made.
-
-    Args:
-        result: The SanitizeResult from sanitize().
-
-    Returns:
-        A string such as ``"4 replacement(s) made."``.
-    """
+    """Return a one-line summary of how many replacements were made."""
     return f"{result.replacement_count} replacement(s) made."

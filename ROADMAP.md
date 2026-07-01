@@ -5,15 +5,13 @@ ShareClean is intentionally small: local-first, standard-library-only, and focus
 ## Near Term
 
 - Add more targeted detectors for common cloud and SaaS token shapes while keeping examples fake.
-- Add a `--fail-on {category}` option for stricter CI and pre-commit workflows.
 - Add optional allowlist support for values users intentionally want to preserve.
-- Improve JSON report ergonomics for automation.
-- Publish to PyPI once the package name and release flow are ready.
+- Add optional SARIF output for code-scanning style integrations.
+- Add repository-relative source paths as an explicit opt-in report mode for CI.
+- Add `--report-format jsonl` for batch and stream processing.
 
 ## Maybe Later
 
-- Optional SARIF output for code-scanning style integrations.
-- Config file support for team defaults.
 - More fixture packs for common log formats.
 
 ## Non-Goals

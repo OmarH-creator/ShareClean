@@ -4,11 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "shareclean"
-version = "0.1.1"
+version = "0.2.0"
 description = "Local-first CLI for sanitizing logs, stack traces, and text before sharing."
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+dependencies = [
+  "tomli>=2; python_version < '3.11'",
+]
+license = "MIT"
 authors = [
   {name = "Omar Hassan Elsayed"},
 ]
@@ -24,7 +27,6 @@ classifiers = [
   "Development Status :: 3 - Alpha",
   "Environment :: Console",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",

@@ -1,0 +1,2 @@
+postgresql://demo:fake-password@db.example.test/app
+redis://cache:fake-password@localhost:6379/0

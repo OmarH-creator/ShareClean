@@ -1,0 +1,3 @@
+2026-07-01T00:00:00Z DEBUG password=fake-log-password
+2026-07-01T00:00:01Z DEBUG Authorization: Bearer fake-log-bearer-token
+2026-07-01T00:00:02Z INFO user=user@example.com

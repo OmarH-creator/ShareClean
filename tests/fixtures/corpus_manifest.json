@@ -1,0 +1,60 @@
+[
+  {
+    "path": "generic/mixed.txt",
+    "by_category": {
+      "credential": 1,
+      "token": 1,
+      "pii_email": 1,
+      "pii_path": 1,
+      "internal_network": 1
+    }
+  },
+  {
+    "path": "generic/private_key.txt",
+    "by_category": {
+      "private_key": 1
+    }
+  },
+  {
+    "path": "cloud/tokens.txt",
+    "by_category": {
+      "credential": 2
+    }
+  },
+  {
+    "path": "databases/uris.txt",
+    "by_category": {
+      "connection_string": 2
+    }
+  },
+  {
+    "path": "ci_cd/pipeline.env",
+    "by_category": {
+      "credential": 2
+    }
+  },
+  {
+    "path": "saas/tokens.txt",
+    "by_category": {
+      "credential": 2
+    }
+  },
+  {
+    "path": "logs/app.log",
+    "by_category": {
+      "credential": 1,
+      "token": 1,
+      "pii_email": 1
+    }
+  },
+  {
+    "path": "yaml_json_env/config.yml",
+    "by_category": {
+      "credential": 2
+    }
+  },
+  {
+    "path": "false_positives/safe.txt",
+    "by_category": {}
+  }
+]

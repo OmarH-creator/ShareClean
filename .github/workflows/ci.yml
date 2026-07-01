@@ -39,6 +39,7 @@ jobs:
       - name: Install project
         run: |
           python -m pip install --upgrade pip
+          python -m pip install build twine
           python -m pip install -e .
 
       - name: Run tests
@@ -50,5 +51,8 @@ jobs:
       - name: Verify CLI help
         run: python -m shareclean --help
 
-      - name: Build wheel
-        run: python -m pip wheel . --no-deps --wheel-dir dist-check
+      - name: Build distributions
+        run: python -m build
+
+      - name: Validate distributions
+        run: python -m twine check dist/*

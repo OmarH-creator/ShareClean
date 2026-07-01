@@ -2,10 +2,29 @@
 
 This checklist keeps releases boring and repeatable.
 
+## One-Time PyPI Setup
+
+1. Confirm the `shareclean` project name is available on PyPI and TestPyPI, or that you control it.
+2. Configure pending Trusted Publishers for both PyPI and TestPyPI before the first upload.
+3. Use separate GitHub environments:
+   - `testpypi`
+   - `pypi`
+4. Protect the `pypi` environment with manual approval.
+5. Do not store long-lived PyPI API tokens in GitHub secrets.
+
+The release workflow uses `pypa/gh-action-pypi-publish@release/v1` with job-level `id-token: write`.
+
 ## Before Release
 
 1. Confirm `CHANGELOG.md` has an entry for the release.
-2. Confirm `src/shareclean/__init__.py` and `pyproject.toml` use the same version.
+2. Confirm the Git tag, `pyproject.toml`, and `shareclean --version` normalize to the same version:
+
+   ```text
+   tag: v0.2.0
+   package: 0.2.0
+   CLI: 0.2.0
+   ```
+
 3. Run the full test suite:
 
    ```bash
@@ -18,17 +37,19 @@ This checklist keeps releases boring and repeatable.
    python -m compileall -q src tests
    ```
 
-5. Build a local wheel:
+5. Build and validate distributions:
 
    ```bash
-   python -m pip wheel . --no-deps --wheel-dir dist-check
+   python -m build
+   python -m twine check dist/*
    ```
 
-6. Smoke test the installed CLI in a clean environment when possible:
+6. Smoke test the CLI:
 
    ```bash
-   shareclean --help
+   shareclean --version
    shareclean tests/fixtures/sample_log.txt --check
+   shareclean config show
    ```
 
 ## Release
@@ -41,11 +62,23 @@ This checklist keeps releases boring and repeatable.
    git push origin main --tags
    ```
 
-3. Create a GitHub release from the tag.
-4. Include the relevant `CHANGELOG.md` section in the release notes.
+3. Publish a GitHub Release from the tag.
+4. The release workflow will:
+   - Checkout the release tag.
+   - Run the test matrix.
+   - Build exactly once with `python -m build`.
+   - Run `twine check dist/*`.
+   - Upload the exact `dist/` files as an artifact.
+   - Publish that artifact to TestPyPI.
+   - Smoke install the exact version from TestPyPI.
+   - Wait for protected `pypi` environment approval.
+   - Publish the same artifact to production PyPI.
+
+Production PyPI publishing is skipped for GitHub prereleases.
 
 ## After Release
 
-- Verify the CI workflow passed on the release tag.
-- Verify installation instructions in `README.md` still work.
-- Open a follow-up issue for anything intentionally deferred.
+- Verify `pipx install shareclean` works on Windows, macOS, and Linux.
+- Verify `shareclean --version` matches the release tag.
+- Verify the GitHub Release workflow published the expected artifacts.
+- Open follow-up issues for anything intentionally deferred.

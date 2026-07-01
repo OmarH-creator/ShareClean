@@ -8,7 +8,7 @@
 
 Local-first Python CLI for sanitizing logs, stack traces, config snippets, and terminal output before you paste them into GitHub issues, support tickets, Slack, or AI chats.
 
-ShareClean detects common sensitive values, replaces only the risky portion, and reports what changed without storing or printing the original secret. It has no runtime dependencies, makes no network calls, and sends no telemetry.
+ShareClean detects common sensitive values, replaces only the risky portion, and reports safe metadata without storing or printing the original secret. It makes no network calls and sends no telemetry.
 
 [Try the interactive browser playground](https://omarh-creator.github.io/ShareClean/) to see the redaction rules before installing.
 
@@ -16,71 +16,12 @@ ShareClean detects common sensitive values, replaces only the risky portion, and
 
 Browser playground shown for illustration; real workflows run locally through the CLI.
 
-## 10-Second Demo
-
-```bash
-cat app.log | shareclean --report
-```
-
-Input:
-
-```text
-user=user@example.com
-password=fake-secret-value
-postgresql://app:fake-pass@db.example.com/app
-```
-
-Output:
-
-```text
-user=[EMAIL REDACTED]
-password=[REDACTED]
-postgresql://app:[REDACTED]@db.example.com/app
-```
-
-Report:
-
-```text
-3 replacement(s) made.
-```
-
-## Why ShareClean?
-
-Debugging often means pasting logs into GitHub issues, support tickets, AI chats, and Slack threads. Those logs can accidentally contain passwords, API keys, connection strings, local usernames, email addresses, or tokens.
-
-ShareClean is the quick local safety pass you run before posting.
-
-## When To Use It
-
-- Before sharing logs, traceback output, terminal transcripts, `.env` snippets, or config fragments.
-- In a pre-share script, Git hook, or CI check where sanitized text should stay local.
-- When you want context-preserving redaction instead of deleting whole lines.
-
-## How It Is Different
-
-ShareClean is not a repository secret scanner. Tools like dedicated repo scanners are better for finding committed credentials across source history.
-
-ShareClean is for the smaller everyday moment: "I am about to paste this text somewhere public. Can I make it safer first?"
-
-## Features
-
-- Redacts key-value secrets such as `password=`, `api_key:`, `token=`, and `client_secret=`
-- Redacts connection string passwords while preserving scheme, user, host, port, and database
-- Redacts Bearer tokens and JWT-like values
-- Redacts email addresses by default, with `--no-email` available when email context matters
-- Redacts local usernames from Windows, Linux, and macOS-style paths
-- Optionally redacts RFC 1918 private IP addresses with `--redact-private-ip`
-- Supports custom generic redaction labels with `--redaction-label`
-- Emits human-readable or JSON reports
-- Supports `--check` mode for CI, hooks, and pre-share workflows
-- Uses only the Python standard library at runtime
-
 ## Install
 
 With `pipx`:
 
 ```bash
-pipx install git+https://github.com/OmarH-creator/ShareClean.git@v0.1.1
+pipx install shareclean
 ```
 
 From a local checkout:
@@ -89,13 +30,7 @@ From a local checkout:
 python -m pip install -e .
 ```
 
-Directly from GitHub:
-
-```bash
-python -m pip install git+https://github.com/OmarH-creator/ShareClean.git@v0.1.1
-```
-
-You can also run it without installing from the repository root:
+Run without installing from the repository root:
 
 ```bash
 python -m shareclean --help
@@ -103,88 +38,158 @@ python -m shareclean --help
 
 ## Quick Start
 
-Sanitize a file and print the cleaned text:
-
 ```bash
 shareclean app.log
-```
-
-Pipe from stdin:
-
-```bash
-cat app.log | shareclean
-```
-
-On Windows PowerShell:
-
-```powershell
-Get-Content .\app.log -Raw | shareclean
-```
-
-Write sanitized output to a new file:
-
-```bash
 shareclean app.log --output app.cleaned.log
-```
-
-Print a full report to stderr:
-
-```bash
 shareclean app.log --report
-```
-
-Use a custom label for generic secrets:
-
-```bash
-shareclean app.log --redaction-label "[HIDDEN]"
-```
-
-Emit a machine-readable report:
-
-```bash
 shareclean app.log --report --report-format json
+shareclean app.log --check
+shareclean app.log --check --fail-on severity:high
+shareclean app.log --check --fail-on category:token,rule:SC004
+shareclean app.log --check --ignore-for-check category:pii_email
 ```
 
-Use check mode for CI or hooks:
+`--check` exits `1` only for findings selected by the check policy and never writes sanitized text to stdout.
+
+## Configuration
+
+ShareClean supports committed project policy in either `pyproject.toml` or `.shareclean.toml`.
+
+```toml
+[tool.shareclean]
+redact_email = true
+redact_private_ip = false
+redaction_label = "[REDACTED]"
+profile = "default"
+
+[tool.shareclean.profiles.ci]
+redact_email = true
+redact_private_ip = true
+fail_on = ["severity:high"]
+```
+
+For `.shareclean.toml`, omit the `tool.shareclean` prefix:
+
+```toml
+redact_email = true
+redact_private_ip = false
+
+[profiles.ci]
+redact_private_ip = true
+fail_on = ["severity:high"]
+```
+
+Config location:
+
+1. `--config PATH`
+2. Nearest project directory containing `.shareclean.toml` or a `pyproject.toml` with `[tool.shareclean]`
+3. Defaults
+
+Auto-discovery walks upward from the current directory until the Git root or filesystem root. It uses only the nearest config directory and never merges parent configs. If `.shareclean.toml` and ShareClean config in `pyproject.toml` exist in the same selected directory, ShareClean exits `2`.
+
+Config precedence:
+
+1. CLI flags
+2. Environment variables
+3. Selected profile values
+4. Base project config
+5. Defaults
+
+Environment variables:
+
+- `SHARECLEAN_REDACT_EMAIL`
+- `SHARECLEAN_REDACT_PRIVATE_IP`
+- `SHARECLEAN_REDACTION_LABEL`
+- `SHARECLEAN_PROFILE`
+- `SHARECLEAN_FAIL_ON`
+- `SHARECLEAN_IGNORE_FOR_CHECK`
+
+Boolean environment values accept `true`, `1`, `yes`, `on`, `false`, `0`, `no`, and `off`.
+
+Inspect effective configuration without reading input:
 
 ```bash
-shareclean app.log --check
+shareclean config show
 ```
 
-`--check` exits with code `1` when findings are detected and never writes sanitized text to stdout.
+## Detection Rules
 
-## What It Detects
+| Rule ID | Detector | Category | Severity |
+|---|---|---|---|
+| `SC001` | Key-value secret | `credential` | `high` |
+| `SC002` | Bearer token | `token` | `high` |
+| `SC003` | JWT-like token | `token` | `high` |
+| `SC004` | Connection-string password | `connection_string` | `critical` |
+| `SC005` | Email address | `pii_email` | `medium` |
+| `SC006` | Local user path | `pii_path` | `medium` |
+| `SC007` | Private IP address | `internal_network` | `medium` |
+| `SC008` | PEM private-key block | `private_key` | `critical` |
 
-| Pattern | Example input | Output |
-|---|---|---|
-| Key-value secret | `password=letmein` | `password=[REDACTED]` |
-| API key | `api_key: abc123` | `api_key: [REDACTED]` |
-| Connection string | `postgresql://user:pass@host/db` | `postgresql://user:[REDACTED]@host/db` |
-| Bearer token | `Authorization: Bearer eyJ...` | `Authorization: Bearer [REDACTED]` |
-| JWT-like token | `xxx.yyy.zzz` | `[JWT REDACTED]` |
-| Email address | `user@example.com` | `[EMAIL REDACTED]` |
-| Windows user path | `C:\Users\Alice\work` | `C:\Users\[USER]\work` |
-| Unix user path | `/home/alice/project` | `/home/[USER]/project` |
-| Private IP address | `192.168.1.20` | `[PRIVATE-IP]` when enabled |
+Private IP detection is off by default; enable it with `--redact-private-ip` or config.
 
-See [docs/detection-rules.md](docs/detection-rules.md) for more detail.
+When detectors overlap on the same text range, ShareClean emits one finding using the highest-severity rule. If severities match, it uses the most specific detector.
+
+## JSON Reports
+
+JSON reports use schema version `1.0` and do not include filenames, paths, matched values, hashes, source snippets, or masked previews.
+
+```json
+{
+  "schema_version": "1.0",
+  "source": "file",
+  "summary": {
+    "findings": 1,
+    "by_category": {
+      "credential": 1
+    },
+    "by_severity": {
+      "high": 1
+    }
+  },
+  "findings": [
+    {
+      "rule_id": "SC001",
+      "category": "credential",
+      "severity": "high",
+      "location": {
+        "start": {
+          "line": 1,
+          "column": 10
+        },
+        "end": {
+          "line": 1,
+          "column": 27
+        }
+      },
+      "replacement": "[REDACTED]"
+    }
+  ]
+}
+```
+
+Locations are 1-based. End positions are exclusive. Columns count Unicode code points after treating CRLF as one LF newline for location purposes.
 
 ## CLI Reference
 
 ```text
-usage: shareclean [-h] [--check] [--output FILE] [--report]
-                  [--report-format {text,json}] [--no-email]
-                  [--redact-private-ip] [--redaction-label TEXT]
+usage: shareclean [-h] [--version] [--check] [--output FILE] [--report]
+                  [--report-format {text,json}] [--config FILE]
+                  [--profile NAME] [--redact-email] [--no-redact-email]
+                  [--redact-private-ip] [--no-redact-private-ip]
+                  [--redaction-label TEXT] [--fail-on SELECTORS]
+                  [--ignore-for-check SELECTORS]
                   [FILE]
 ```
+
+`--no-email` remains as a deprecated alias for `--no-redact-email`.
 
 Exit codes:
 
 | Code | Meaning |
 |---:|---|
 | `0` | Completed successfully |
-| `1` | Findings detected in `--check` mode |
-| `2` | User or I/O error |
+| `1` | Selected findings detected in `--check` mode |
+| `2` | User, I/O, config, or selector error |
 | `3` | Unexpected internal error |
 
 ## Safety Model
@@ -198,7 +203,11 @@ ShareClean is intentionally local and transparent:
 - Original matched secret values are not stored in findings or reports
 - Input files are never modified in place
 
-ShareClean is pattern-based. It can miss unusual formats and can redact benign text that resembles a secret. Always inspect sanitized output before sharing it publicly.
+## Coverage And Limitations
+
+ShareClean is pattern-based. It can miss unusual formats and can redact benign text that resembles a secret. It is not a replacement for repository secret scanners, source-history scanning, or DLP systems.
+
+The test corpus under `tests/fixtures/` uses only fake values and is split into generic, cloud, database, CI/CD, SaaS, log, YAML/JSON/env, and false-positive packs. Bug reports that change detection should add a regression fixture using clearly fake data.
 
 ## Development
 
@@ -208,22 +217,13 @@ Run the test suite:
 python -m unittest discover -s tests -v
 ```
 
-Run basic packaging and import checks:
+Run packaging checks:
 
 ```bash
 python -m compileall -q src tests
-python -m pip wheel . --no-deps --wheel-dir dist-check
+python -m build
+python -m twine check dist/*
 ```
-
-The project uses only the Python standard library at runtime and for tests.
-
-## Contributing
-
-Bug reports, detector improvements, and documentation fixes are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md).
-
-For security-sensitive issues, please read [SECURITY.md](SECURITY.md) before opening a public issue.
-
-See [ROADMAP.md](ROADMAP.md) for planned next steps.
 
 ## License
 

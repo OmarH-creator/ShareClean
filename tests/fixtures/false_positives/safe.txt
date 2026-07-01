@@ -1,0 +1,4 @@
+elapsed=42
+status: ok
+public_url=https://example.test/docs
+version 1.2.3

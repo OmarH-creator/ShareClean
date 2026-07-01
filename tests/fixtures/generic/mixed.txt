@@ -1,0 +1,5 @@
+password=fake-password-for-testing
+Authorization: Bearer fake-bearer-token-for-testing
+Contact user@example.com for a demo support case.
+Local path: /home/fakeuser/project
+Private host: 192.168.1.10

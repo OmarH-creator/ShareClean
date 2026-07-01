@@ -1,7 +1,7 @@
 """Detector rules for ShareClean.
 
-Defines the Rule dataclass and all compiled regex patterns used to detect
-and redact sensitive content from text.
+Rules expose stable detector IDs, categories, severities, and replacement
+labels. They never hold or return original matched values.
 """
 
 from __future__ import annotations
@@ -12,41 +12,71 @@ from typing import Callable
 
 DEFAULT_REDACTION_LABEL = "[REDACTED]"
 
+Severity = str
+SpanGetter = Callable[[re.Match[str]], tuple[int, int]]
+
+VALID_CATEGORIES = frozenset({
+    "credential",
+    "token",
+    "connection_string",
+    "pii_email",
+    "pii_path",
+    "internal_network",
+    "private_key",
+})
+
+VALID_SEVERITIES = ("low", "medium", "high", "critical")
+SEVERITY_RANK = {severity: index for index, severity in enumerate(VALID_SEVERITIES)}
+
 
 @dataclass(frozen=True)
 class Rule:
-    """A single detection rule: a compiled regex pattern plus replacement.
+    """A single detection rule.
 
-    The replacement can be a literal string (for whole-match redactions)
-    or a callable(re.Match) -> str (for context-preserving redactions).
+    ``pattern`` may match surrounding context, while ``redact_span`` identifies
+    the exact character range to replace in the original input.
     """
 
     rule_id: str
+    name: str
     category: str
+    severity: Severity
     pattern: re.Pattern[str]
-    replacement: str | Callable[[re.Match[str]], str]
+    replacement: str
+    specificity: int
+    redact_span: SpanGetter = lambda m: m.span()
+
+
+def _group_span(name: str) -> SpanGetter:
+    return lambda match: match.span(name)
 
 
 # ---------------------------------------------------------------------------
 # Compiled patterns
 # ---------------------------------------------------------------------------
 
+_PEM_PRIVATE_KEY_PATTERN = re.compile(
+    r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?"
+    r"-----END [A-Z0-9 ]*PRIVATE KEY-----"
+)
+
 _CONNECTION_STRING_PATTERN = re.compile(
     r"(?P<scheme>postgres(?:ql)?|mysql|mongodb|redis)://"
-    r"(?P<userinfo>[^:@/]*):"
-    r"(?P<password>[^@]+)"
-    r"@(?P<hostdb>.+)"
+    r"(?P<userinfo>[^:@/\s]*):"
+    r"(?P<password>[^@\s]+)"
+    r"@(?P<hostdb>[^\s,;]+)",
+    re.IGNORECASE,
 )
 
 _BEARER_TOKEN_PATTERN = re.compile(
-    r"(?P<prefix>authorization\s*:\s*bearer\s+)(?P<value>\S+)",
+    r"authorization\s*:\s*bearer\s+(?P<value>\S+)",
     re.IGNORECASE,
 )
 
 _KEY_VALUE_SECRET_PATTERN = re.compile(
-    r"(?im)(?P<key>\b(?:password|passwd|pwd|api[_-]?key|apikey|token|"
-    r"access[_-]?token|refresh[_-]?token|secret|client[_-]?secret)\s*[:=]\s*)"
-    r"(?P<value>[^\s,;]+)"
+    r"(?im)\b(?:password|passwd|pwd|api[_-]?key|apikey|token|"
+    r"access[_-]?token|refresh[_-]?token|secret|client[_-]?secret)"
+    r"\s*[:=]\s*(?P<value>[^\s,;]+)"
 )
 
 _JWT_LIKE_PATTERN = re.compile(
@@ -58,11 +88,11 @@ _EMAIL_PATTERN = re.compile(
 )
 
 _WINDOWS_USER_PATH_PATTERN = re.compile(
-    r"(?i)(?P<prefix>[A-Za-z]:\\Users\\)(?P<user>[^\\\s]+)"
+    r"(?i)[A-Za-z]:\\Users\\(?P<user>[^\\\s]+)"
 )
 
 _UNIX_USER_PATH_PATTERN = re.compile(
-    r"(?P<prefix>/(?:home|Users)/)(?P<user>[^/\s]+)"
+    r"/(?:home|Users)/(?P<user>[^/\s]+)"
 )
 
 _PRIVATE_IP_PATTERN = re.compile(
@@ -72,102 +102,111 @@ _PRIVATE_IP_PATTERN = re.compile(
 )
 
 
-# ---------------------------------------------------------------------------
-# Replacement callables
-# ---------------------------------------------------------------------------
-
-def _replace_connection_string(m: re.Match[str], redaction_label: str) -> str:
-    return (
-        f"{m.group('scheme')}://{m.group('userinfo')}:"
-        f"{redaction_label}@{m.group('hostdb')}"
+def _private_key_rule() -> Rule:
+    return Rule(
+        rule_id="SC008",
+        name="PEM private-key block",
+        category="private_key",
+        severity="critical",
+        pattern=_PEM_PRIVATE_KEY_PATTERN,
+        replacement="[PRIVATE-KEY REDACTED]",
+        specificity=100,
     )
 
 
-def _replace_bearer_token(m: re.Match[str], redaction_label: str) -> str:
-    return f"{m.group('prefix')}{redaction_label}"
-
-
-def _replace_key_value_secret(m: re.Match[str], redaction_label: str) -> str:
-    return f"{m.group('key')}{redaction_label}"
-
-
-def _replace_windows_user_path(m: re.Match[str]) -> str:
-    return f"{m.group('prefix')}[USER]"
-
-
-def _replace_unix_user_path(m: re.Match[str]) -> str:
-    return f"{m.group('prefix')}[USER]"
-
-
-# ---------------------------------------------------------------------------
-# Rule factories
-# ---------------------------------------------------------------------------
-
 def _connection_string_rule(redaction_label: str) -> Rule:
     return Rule(
-        rule_id="CONNECTION_STRING",
-        category="Connection string password",
+        rule_id="SC004",
+        name="Connection-string password",
+        category="connection_string",
+        severity="critical",
         pattern=_CONNECTION_STRING_PATTERN,
-        replacement=lambda m: _replace_connection_string(m, redaction_label),
+        replacement=redaction_label,
+        specificity=90,
+        redact_span=_group_span("password"),
     )
 
 
 def _bearer_token_rule(redaction_label: str) -> Rule:
     return Rule(
-        rule_id="BEARER_TOKEN",
-        category="Bearer token",
+        rule_id="SC002",
+        name="Bearer token",
+        category="token",
+        severity="high",
         pattern=_BEARER_TOKEN_PATTERN,
-        replacement=lambda m: _replace_bearer_token(m, redaction_label),
+        replacement=redaction_label,
+        specificity=80,
+        redact_span=_group_span("value"),
+    )
+
+
+def _jwt_like_rule() -> Rule:
+    return Rule(
+        rule_id="SC003",
+        name="JWT-like token",
+        category="token",
+        severity="high",
+        pattern=_JWT_LIKE_PATTERN,
+        replacement="[JWT REDACTED]",
+        specificity=70,
     )
 
 
 def _key_value_secret_rule(redaction_label: str) -> Rule:
     return Rule(
-        rule_id="KEY_VALUE_SECRET",
-        category="Key-value secret",
+        rule_id="SC001",
+        name="Key-value secret",
+        category="credential",
+        severity="high",
         pattern=_KEY_VALUE_SECRET_PATTERN,
-        replacement=lambda m: _replace_key_value_secret(m, redaction_label),
+        replacement=redaction_label,
+        specificity=60,
+        redact_span=_group_span("value"),
     )
 
-_JWT_LIKE = Rule(
-    rule_id="JWT_LIKE",
-    category="JWT-like token",
-    pattern=_JWT_LIKE_PATTERN,
-    replacement="[JWT REDACTED]",
-)
 
 _EMAIL = Rule(
-    rule_id="EMAIL",
-    category="Email address",
+    rule_id="SC005",
+    name="Email address",
+    category="pii_email",
+    severity="medium",
     pattern=_EMAIL_PATTERN,
     replacement="[EMAIL REDACTED]",
+    specificity=50,
 )
 
 _WINDOWS_USER_PATH = Rule(
-    rule_id="WINDOWS_USER_PATH",
-    category="Windows user path",
+    rule_id="SC006",
+    name="Windows local user path",
+    category="pii_path",
+    severity="medium",
     pattern=_WINDOWS_USER_PATH_PATTERN,
-    replacement=_replace_windows_user_path,
+    replacement="[USER]",
+    specificity=40,
+    redact_span=_group_span("user"),
 )
 
 _UNIX_USER_PATH = Rule(
-    rule_id="UNIX_USER_PATH",
-    category="Unix user path",
+    rule_id="SC006",
+    name="Unix local user path",
+    category="pii_path",
+    severity="medium",
     pattern=_UNIX_USER_PATH_PATTERN,
-    replacement=_replace_unix_user_path,
+    replacement="[USER]",
+    specificity=40,
+    redact_span=_group_span("user"),
 )
 
 _PRIVATE_IP = Rule(
-    rule_id="PRIVATE_IP",
-    category="Private IP address",
+    rule_id="SC007",
+    name="Private IP address",
+    category="internal_network",
+    severity="medium",
     pattern=_PRIVATE_IP_PATTERN,
     replacement="[PRIVATE-IP]",
+    specificity=30,
 )
 
-
-# ---------------------------------------------------------------------------
-# Public factory
-# ---------------------------------------------------------------------------
 
 def get_rules(
     *,
@@ -175,23 +214,13 @@ def get_rules(
     redact_private_ip: bool = False,
     redaction_label: str = DEFAULT_REDACTION_LABEL,
 ) -> list[Rule]:
-    """Return the ordered list of active rules based on the supplied flags.
-
-    Rule order (as required by design):
-      1. CONNECTION_STRING
-      2. BEARER_TOKEN
-      3. KEY_VALUE_SECRET
-      4. JWT_LIKE
-      5. EMAIL          (only when redact_email=True)
-      6. WINDOWS_USER_PATH
-      7. UNIX_USER_PATH
-      8. PRIVATE_IP     (only when redact_private_ip=True)
-    """
+    """Return the ordered list of active detector rules."""
     rules: list[Rule] = [
+        _private_key_rule(),
         _connection_string_rule(redaction_label),
         _bearer_token_rule(redaction_label),
+        _jwt_like_rule(),
         _key_value_secret_rule(redaction_label),
-        _JWT_LIKE,
     ]
 
     if redact_email:
