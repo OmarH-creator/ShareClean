@@ -1,8 +1,13 @@
 * text=auto
 
+.gitattributes text eol=lf
 *.py text eol=lf
 *.md text eol=lf
 *.toml text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
 *.txt text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+.nojekyll text eol=lf

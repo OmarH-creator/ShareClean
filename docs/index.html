@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Try ShareClean in your browser: redact secrets and personal data from logs before sharing.">
+    <title>ShareClean - Local-first log sanitizer</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav" aria-label="Primary navigation">
+        <a class="brand" href="#top" aria-label="ShareClean home">
+          <span class="brand-mark" aria-hidden="true">SC</span>
+          <span>ShareClean</span>
+        </a>
+        <div class="nav-links">
+          <a href="#playground">Playground</a>
+          <a href="#rules">Rules</a>
+          <a href="https://github.com/OmarH-creator/ShareClean/releases/latest">Install</a>
+          <a href="https://github.com/OmarH-creator/ShareClean">GitHub</a>
+        </div>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Local-first developer safety</p>
+          <h1 id="hero-title">ShareClean</h1>
+          <p class="hero-text">
+            Clean logs, stack traces, config snippets, and terminal output before
+            you paste them into issues, tickets, chats, or AI tools.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#playground">Try the playground</a>
+            <a class="button secondary" href="https://github.com/OmarH-creator/ShareClean/releases/latest">Get v0.1.0</a>
+          </div>
+          <dl class="proof-strip" aria-label="Project highlights">
+            <div>
+              <dt>0</dt>
+              <dd>runtime dependencies</dd>
+            </div>
+            <div>
+              <dt>0</dt>
+              <dd>network calls</dd>
+            </div>
+            <div>
+              <dt>3.10+</dt>
+              <dd>Python support</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="hero-showcase" aria-label="ShareClean terminal preview">
+          <div class="terminal-chrome">
+            <span></span><span></span><span></span>
+            <p>shareclean --report</p>
+          </div>
+          <div class="terminal-body">
+            <p><span class="prompt">$</span> cat app.log | shareclean --report</p>
+            <p>user=<mark>[EMAIL REDACTED]</mark></p>
+            <p>password=<mark>[REDACTED]</mark></p>
+            <p>postgresql://app:<mark>[REDACTED]</mark>@db/app</p>
+            <p class="terminal-muted">3 replacement(s) made.</p>
+          </div>
+          <div class="scan-card" aria-hidden="true">
+            <span class="scan-line"></span>
+            <strong>Ready to share</strong>
+            <small>No secrets stored. No telemetry sent.</small>
+          </div>
+        </div>
+      </section>
+
+      <section id="playground" class="playground" aria-labelledby="playground-title">
+        <div class="section-heading">
+          <p class="eyebrow">Interactive browser demo</p>
+          <h2 id="playground-title">Paste fake text. Watch risky parts disappear.</h2>
+          <p>
+            The playground runs entirely in your browser and closely follows the
+            CLI's default rules. The command line tool remains the source of truth.
+          </p>
+        </div>
+
+        <div class="tool-shell">
+          <div class="toolbar" aria-label="Playground controls">
+            <label class="select-label" for="scenarioSelect">Sample</label>
+            <select id="scenarioSelect" aria-label="Sample input">
+              <option value="apiLog">API log</option>
+              <option value="stackTrace">Stack trace</option>
+              <option value="envSnippet">Env snippet</option>
+            </select>
+            <button class="control-button" id="sampleButton" type="button">Load</button>
+            <button class="control-button" id="copyButton" type="button">Copy output</button>
+            <label class="toggle">
+              <input id="emailToggle" type="checkbox" checked>
+              <span>Email</span>
+            </label>
+            <label class="toggle">
+              <input id="privateIpToggle" type="checkbox">
+              <span>Private IP</span>
+            </label>
+            <p class="toolbar-status" id="copyStatus" aria-live="polite"></p>
+          </div>
+
+          <div class="stats-row" aria-label="Sanitizer summary">
+            <div>
+              <span>Replacements</span>
+              <strong id="replacementCount">0</strong>
+            </div>
+            <div>
+              <span>Lines scanned</span>
+              <strong id="lineCount">0</strong>
+            </div>
+            <div class="score">
+              <span id="riskLabel">Clean</span>
+              <div class="score-track" aria-hidden="true">
+                <span id="scoreBar"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="editor-grid">
+            <label class="pane">
+              <span>Input</span>
+              <textarea id="inputText" spellcheck="false"></textarea>
+            </label>
+
+            <div class="pane output-pane">
+              <div class="pane-title">
+                <span>Sanitized output</span>
+                <strong id="replacementSummary">0 replacement(s)</strong>
+              </div>
+              <pre tabindex="0"><code id="outputText"></code></pre>
+            </div>
+          </div>
+
+          <div class="findings-panel" aria-labelledby="findings-title">
+            <div class="pane-title">
+              <h3 id="findings-title">Findings</h3>
+              <span id="safetyStatus">No sensitive patterns found.</span>
+            </div>
+            <ul id="findingsList"></ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="rules" class="rules" aria-labelledby="rules-title">
+        <div class="section-heading">
+          <p class="eyebrow">What it redacts</p>
+          <h2 id="rules-title">Focused rules that keep useful context.</h2>
+        </div>
+        <div class="rules-grid">
+          <article>
+            <span class="rule-accent"></span>
+            <h3>Secrets</h3>
+            <p>Passwords, API keys, tokens, client secrets, Bearer tokens, and JWT-like values.</p>
+          </article>
+          <article>
+            <span class="rule-accent amber"></span>
+            <h3>Connection Strings</h3>
+            <p>Only the password segment is replaced, leaving host and database details intact.</p>
+          </article>
+          <article>
+            <span class="rule-accent blue"></span>
+            <h3>People and Paths</h3>
+            <p>Email addresses and local usernames in Windows, Linux, and macOS paths.</p>
+          </article>
+          <article>
+            <span class="rule-accent coral"></span>
+            <h3>Opt-in IPs</h3>
+            <p>RFC 1918 private IP redaction is available when you want stricter output.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>ShareClean runs locally, has no telemetry, and uses only Python's standard library.</p>
+      <a href="https://github.com/OmarH-creator/ShareClean">Star or fork on GitHub</a>
+    </footer>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

@@ -39,8 +39,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/OmarH-creator/ShareClean"
+Homepage = "https://omarh-creator.github.io/ShareClean/"
 Repository = "https://github.com/OmarH-creator/ShareClean"
+Documentation = "https://omarh-creator.github.io/ShareClean/"
 Issues = "https://github.com/OmarH-creator/ShareClean/issues"
 Changelog = "https://github.com/OmarH-creator/ShareClean/blob/main/CHANGELOG.md"
 Security = "https://github.com/OmarH-creator/ShareClean/security"

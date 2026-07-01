@@ -4,10 +4,13 @@
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 [![Release](https://img.shields.io/github/v/release/OmarH-creator/ShareClean)](https://github.com/OmarH-creator/ShareClean/releases)
+[![Live demo](https://img.shields.io/badge/live-demo-4fd1c5)](https://omarh-creator.github.io/ShareClean/)
 
 Local-first Python CLI for sanitizing logs, stack traces, config snippets, and terminal output before you paste them into GitHub issues, support tickets, Slack, or AI chats.
 
 ShareClean detects common sensitive values, replaces only the risky portion, and reports what changed without storing or printing the original secret. It has no runtime dependencies, makes no network calls, and sends no telemetry.
+
+[Try the interactive browser playground](https://omarh-creator.github.io/ShareClean/) to see the redaction rules before installing.
 
 ![ShareClean terminal demo](docs/assets/shareclean-demo.svg)
 
