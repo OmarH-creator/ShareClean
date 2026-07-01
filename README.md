@@ -12,7 +12,9 @@ ShareClean detects common sensitive values, replaces only the risky portion, and
 
 [Try the interactive browser playground](https://omarh-creator.github.io/ShareClean/) to see the redaction rules before installing.
 
-![ShareClean terminal demo](docs/assets/shareclean-demo.svg)
+![ShareClean browser playground demo](docs/assets/shareclean-showcase.gif)
+
+Browser playground shown for illustration; real workflows run locally through the CLI.
 
 ## 10-Second Demo
 

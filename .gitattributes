@@ -11,3 +11,4 @@
 *.css text eol=lf
 *.js text eol=lf
 .nojekyll text eol=lf
+*.gif binary
