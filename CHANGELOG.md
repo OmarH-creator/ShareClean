@@ -4,6 +4,13 @@ All notable changes to ShareClean will be documented in this file.
 
 This project follows a simple release format inspired by Keep a Changelog and uses semantic versioning for public releases.
 
+## 0.1.1 - 2026-07-01
+
+### Added
+
+- `--redaction-label TEXT` for customizing the generic `[REDACTED]` label used by passwords, API keys, Bearer tokens, and connection string passwords.
+- Interactive playground support for trying custom redaction labels in the browser demo.
+
 ## 0.1.0 - 2026-07-01
 
 ### Added

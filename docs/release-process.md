@@ -37,7 +37,7 @@ This checklist keeps releases boring and repeatable.
 2. Tag the release:
 
    ```bash
-   git tag v0.1.0
+   git tag vX.Y.Z
    git push origin main --tags
    ```
 

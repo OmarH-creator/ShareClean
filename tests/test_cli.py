@@ -90,7 +90,7 @@ class TestVersionFlag(unittest.TestCase):
                 main()
 
         self.assertEqual(ctx.exception.code, 0)
-        self.assertIn("shareclean 0.1.0", stdout.getvalue())
+        self.assertIn("shareclean 0.1.1", stdout.getvalue())
         self.assertEqual(stderr.getvalue(), "")
 
 
@@ -313,6 +313,58 @@ class TestRedactPrivateIpFlag(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # Missing file → exit code 2
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# --redaction-label flag
+# ---------------------------------------------------------------------------
+
+class TestRedactionLabelFlag(unittest.TestCase):
+    """--redaction-label customizes generic secret replacement text."""
+
+    def test_redaction_label_changes_key_value_secret_output(self) -> None:
+        path = _write_tempfile("password=fake-secret-value\n")
+        try:
+            _code, out, _err = run_cli("--redaction-label", "[HIDDEN]", path)
+            self.assertIn("password=[HIDDEN]", out)
+            self.assertNotIn("[REDACTED]", out)
+            self.assertNotIn("fake-secret-value", out)
+        finally:
+            os.unlink(path)
+
+    def test_redaction_label_changes_connection_string_password(self) -> None:
+        path = _write_tempfile("postgresql://app:fake-pass@db.example.com/app\n")
+        try:
+            _code, out, _err = run_cli("--redaction-label", "[MASKED]", path)
+            self.assertIn("postgresql://app:[MASKED]@db.example.com/app", out)
+            self.assertNotIn("fake-pass", out)
+        finally:
+            os.unlink(path)
+
+    def test_redaction_label_does_not_change_email_label(self) -> None:
+        path = _write_tempfile("email=user@example.com\npassword=fake-secret\n")
+        try:
+            _code, out, _err = run_cli("--redaction-label", "[SECRET]", path)
+            self.assertIn("email=[EMAIL REDACTED]", out)
+            self.assertIn("password=[SECRET]", out)
+        finally:
+            os.unlink(path)
+
+    def test_json_report_uses_custom_replacement_label(self) -> None:
+        path = _write_tempfile("api_key=fake-api-key-value\n")
+        try:
+            _code, _out, err = run_cli(
+                "--redaction-label",
+                "[REMOVED]",
+                "--report",
+                "--report-format",
+                "json",
+                path,
+            )
+            data = json.loads(err)
+            self.assertEqual(data["findings"][0]["replacement"], "api_key=[REMOVED]")
+        finally:
+            os.unlink(path)
+
 
 class TestMissingFileError(unittest.TestCase):
     """Missing input file must produce exit code 2 with an error on stderr."""

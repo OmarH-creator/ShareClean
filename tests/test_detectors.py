@@ -93,6 +93,15 @@ class TestKeyValueSecretPositive(unittest.TestCase):
         result = _apply_rule("KEY_VALUE_SECRET", text)
         self.assertIn("password=", result)
 
+    def test_custom_redaction_label(self):
+        text = "password=fake-secret-value"
+        result = _apply_rule(
+            "KEY_VALUE_SECRET",
+            text,
+            redaction_label="[HIDDEN]",
+        )
+        self.assertEqual(result, "password=[HIDDEN]")
+
 
 class TestJwtLikePositive(unittest.TestCase):
     """JWT_LIKE rule replaces a three-segment Base64URL token."""
@@ -237,6 +246,17 @@ class TestGetRulesFlags(unittest.TestCase):
         rules = get_rules(redact_private_ip=True)
         ids = [r.rule_id for r in rules]
         self.assertIn("PRIVATE_IP", ids)
+
+    def test_custom_redaction_label_applies_to_connection_strings(self):
+        result = _apply_rule(
+            "CONNECTION_STRING",
+            "postgresql://app:fake-pass@db.example.com/app",
+            redaction_label="[MASKED]",
+        )
+        self.assertEqual(
+            result,
+            "postgresql://app:[MASKED]@db.example.com/app",
+        )
 
 
 if __name__ == "__main__":

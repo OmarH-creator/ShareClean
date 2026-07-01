@@ -68,6 +68,7 @@ ShareClean is for the smaller everyday moment: "I am about to paste this text so
 - Redacts email addresses by default, with `--no-email` available when email context matters
 - Redacts local usernames from Windows, Linux, and macOS-style paths
 - Optionally redacts RFC 1918 private IP addresses with `--redact-private-ip`
+- Supports custom generic redaction labels with `--redaction-label`
 - Emits human-readable or JSON reports
 - Supports `--check` mode for CI, hooks, and pre-share workflows
 - Uses only the Python standard library at runtime
@@ -77,7 +78,7 @@ ShareClean is for the smaller everyday moment: "I am about to paste this text so
 With `pipx`:
 
 ```bash
-pipx install git+https://github.com/OmarH-creator/ShareClean.git@v0.1.0
+pipx install git+https://github.com/OmarH-creator/ShareClean.git@v0.1.1
 ```
 
 From a local checkout:
@@ -89,7 +90,7 @@ python -m pip install -e .
 Directly from GitHub:
 
 ```bash
-python -m pip install git+https://github.com/OmarH-creator/ShareClean.git@v0.1.0
+python -m pip install git+https://github.com/OmarH-creator/ShareClean.git@v0.1.1
 ```
 
 You can also run it without installing from the repository root:
@@ -130,6 +131,12 @@ Print a full report to stderr:
 shareclean app.log --report
 ```
 
+Use a custom label for generic secrets:
+
+```bash
+shareclean app.log --redaction-label "[HIDDEN]"
+```
+
 Emit a machine-readable report:
 
 ```bash
@@ -165,7 +172,7 @@ See [docs/detection-rules.md](docs/detection-rules.md) for more detail.
 ```text
 usage: shareclean [-h] [--check] [--output FILE] [--report]
                   [--report-format {text,json}] [--no-email]
-                  [--redact-private-ip]
+                  [--redact-private-ip] [--redaction-label TEXT]
                   [FILE]
 ```
 

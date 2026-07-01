@@ -413,7 +413,8 @@ select {
   font: inherit;
 }
 
-.toggle {
+.toggle,
+.label-control {
   min-height: 42px;
   display: inline-flex;
   align-items: center;
@@ -423,6 +424,21 @@ select {
   border-radius: 8px;
   color: var(--muted);
   cursor: pointer;
+}
+
+.label-control {
+  cursor: text;
+}
+
+.label-control input {
+  width: 132px;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
 }
 
 .toggle input {

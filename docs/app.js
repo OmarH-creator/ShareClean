@@ -25,19 +25,19 @@ const rules = [
     id: "CONNECTION_STRING",
     category: "Connection string password",
     pattern: /\b((?:postgres(?:ql)?|mysql|mongodb|redis):\/\/[^:@/\s]*:)([^@\s]+)(@[^,\s]+)/gi,
-    replacement: (_match, captures) => `${captures[0]}[REDACTED]${captures[2]}`,
+    replacement: (_match, captures) => `${captures[0]}${genericLabel()}${captures[2]}`,
   },
   {
     id: "BEARER_TOKEN",
     category: "Bearer token",
     pattern: /(authorization\s*:\s*bearer\s+)(\S+)/gi,
-    replacement: (_match, captures) => `${captures[0]}[REDACTED]`,
+    replacement: (_match, captures) => `${captures[0]}${genericLabel()}`,
   },
   {
     id: "KEY_VALUE_SECRET",
     category: "Key-value secret",
     pattern: /\b(password|passwd|pwd|api[_-]?key|apikey|token|access[_-]?token|refresh[_-]?token|secret|client[_-]?secret)(\s*[:=]\s*)([^\s,;]+)/gim,
-    replacement: (_match, captures) => `${captures[0]}${captures[1]}[REDACTED]`,
+    replacement: (_match, captures) => `${captures[0]}${captures[1]}${genericLabel()}`,
   },
   {
     id: "JWT_LIKE",
@@ -84,12 +84,17 @@ const findingsList = document.querySelector("#findingsList");
 const safetyStatus = document.querySelector("#safetyStatus");
 const emailToggle = document.querySelector("#emailToggle");
 const privateIpToggle = document.querySelector("#privateIpToggle");
+const redactionLabel = document.querySelector("#redactionLabel");
 const scenarioSelect = document.querySelector("#scenarioSelect");
 const sampleButton = document.querySelector("#sampleButton");
 const copyButton = document.querySelector("#copyButton");
 const copyStatus = document.querySelector("#copyStatus");
 
 let latestCleanedText = "";
+
+function genericLabel() {
+  return redactionLabel.value || "[REDACTED]";
+}
 
 function lineNumberForOffset(text, offset) {
   let line = 1;
@@ -156,10 +161,26 @@ function escapeHtml(value) {
 }
 
 function highlightedOutput(value) {
-  return escapeHtml(value).replace(
-    /\[(?:REDACTED|EMAIL REDACTED|JWT REDACTED|USER|PRIVATE-IP)\]/g,
-    '<span class="redaction">$&</span>',
-  );
+  let highlighted = escapeHtml(value);
+  const labels = [
+    genericLabel(),
+    "[EMAIL REDACTED]",
+    "[JWT REDACTED]",
+    "[USER]",
+    "[PRIVATE-IP]",
+  ].filter(Boolean);
+
+  for (const label of labels.sort((a, b) => b.length - a.length)) {
+    const escapedLabel = escapeHtml(label);
+    const pattern = new RegExp(escapeRegExp(escapedLabel), "g");
+    highlighted = highlighted.replace(pattern, '<span class="redaction">$&</span>');
+  }
+
+  return highlighted;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function renderFindings(findings) {
@@ -242,6 +263,7 @@ inputText.value = samples.apiLog;
 inputText.addEventListener("input", update);
 emailToggle.addEventListener("change", update);
 privateIpToggle.addEventListener("change", update);
+redactionLabel.addEventListener("input", update);
 scenarioSelect.addEventListener("change", loadSelectedSample);
 sampleButton.addEventListener("click", loadSelectedSample);
 copyButton.addEventListener("click", copyOutput);

@@ -17,7 +17,7 @@ import argparse
 import sys
 
 from shareclean import __version__
-from shareclean.detectors import get_rules
+from shareclean.detectors import DEFAULT_REDACTION_LABEL, get_rules
 from shareclean.io_utils import ShareCleanIOError, read_input, write_output
 from shareclean.redactor import sanitize
 from shareclean.report import format_brief_count, format_json_report, format_text_report
@@ -35,6 +35,14 @@ EXIT_INTERNAL = 3
 # ---------------------------------------------------------------------------
 # Argument parser
 # ---------------------------------------------------------------------------
+
+def _redaction_label(value: str) -> str:
+    if value == "":
+        raise argparse.ArgumentTypeError("must not be empty")
+    if "\n" in value or "\r" in value:
+        raise argparse.ArgumentTypeError("must stay on one line")
+    return value
+
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -98,6 +106,17 @@ def _build_parser() -> argparse.ArgumentParser:
         default=False,
         help="Enable detection and redaction of RFC 1918 private IP addresses.",
     )
+    parser.add_argument(
+        "--redaction-label",
+        default=DEFAULT_REDACTION_LABEL,
+        type=_redaction_label,
+        metavar="TEXT",
+        help=(
+            "Replacement text for generic secrets such as passwords, API keys, "
+            f"Bearer tokens, and connection string passwords. Default: "
+            f"{DEFAULT_REDACTION_LABEL!r}."
+        ),
+    )
 
     return parser
 
@@ -131,6 +150,7 @@ def main() -> int:
         rules = get_rules(
             redact_email=not args.no_email,
             redact_private_ip=args.redact_private_ip,
+            redaction_label=args.redaction_label,
         )
 
         # ------------------------------------------------------------------

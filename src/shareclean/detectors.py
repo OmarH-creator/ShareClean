@@ -10,6 +10,8 @@ import re
 from dataclasses import dataclass
 from typing import Callable
 
+DEFAULT_REDACTION_LABEL = "[REDACTED]"
+
 
 @dataclass(frozen=True)
 class Rule:
@@ -74,16 +76,19 @@ _PRIVATE_IP_PATTERN = re.compile(
 # Replacement callables
 # ---------------------------------------------------------------------------
 
-def _replace_connection_string(m: re.Match[str]) -> str:
-    return f"{m.group('scheme')}://{m.group('userinfo')}:[REDACTED]@{m.group('hostdb')}"
+def _replace_connection_string(m: re.Match[str], redaction_label: str) -> str:
+    return (
+        f"{m.group('scheme')}://{m.group('userinfo')}:"
+        f"{redaction_label}@{m.group('hostdb')}"
+    )
 
 
-def _replace_bearer_token(m: re.Match[str]) -> str:
-    return f"{m.group('prefix')}[REDACTED]"
+def _replace_bearer_token(m: re.Match[str], redaction_label: str) -> str:
+    return f"{m.group('prefix')}{redaction_label}"
 
 
-def _replace_key_value_secret(m: re.Match[str]) -> str:
-    return f"{m.group('key')}[REDACTED]"
+def _replace_key_value_secret(m: re.Match[str], redaction_label: str) -> str:
+    return f"{m.group('key')}{redaction_label}"
 
 
 def _replace_windows_user_path(m: re.Match[str]) -> str:
@@ -95,29 +100,34 @@ def _replace_unix_user_path(m: re.Match[str]) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Rule instances
+# Rule factories
 # ---------------------------------------------------------------------------
 
-_CONNECTION_STRING = Rule(
-    rule_id="CONNECTION_STRING",
-    category="Connection string password",
-    pattern=_CONNECTION_STRING_PATTERN,
-    replacement=_replace_connection_string,
-)
+def _connection_string_rule(redaction_label: str) -> Rule:
+    return Rule(
+        rule_id="CONNECTION_STRING",
+        category="Connection string password",
+        pattern=_CONNECTION_STRING_PATTERN,
+        replacement=lambda m: _replace_connection_string(m, redaction_label),
+    )
 
-_BEARER_TOKEN = Rule(
-    rule_id="BEARER_TOKEN",
-    category="Bearer token",
-    pattern=_BEARER_TOKEN_PATTERN,
-    replacement=_replace_bearer_token,
-)
 
-_KEY_VALUE_SECRET = Rule(
-    rule_id="KEY_VALUE_SECRET",
-    category="Key-value secret",
-    pattern=_KEY_VALUE_SECRET_PATTERN,
-    replacement=_replace_key_value_secret,
-)
+def _bearer_token_rule(redaction_label: str) -> Rule:
+    return Rule(
+        rule_id="BEARER_TOKEN",
+        category="Bearer token",
+        pattern=_BEARER_TOKEN_PATTERN,
+        replacement=lambda m: _replace_bearer_token(m, redaction_label),
+    )
+
+
+def _key_value_secret_rule(redaction_label: str) -> Rule:
+    return Rule(
+        rule_id="KEY_VALUE_SECRET",
+        category="Key-value secret",
+        pattern=_KEY_VALUE_SECRET_PATTERN,
+        replacement=lambda m: _replace_key_value_secret(m, redaction_label),
+    )
 
 _JWT_LIKE = Rule(
     rule_id="JWT_LIKE",
@@ -163,6 +173,7 @@ def get_rules(
     *,
     redact_email: bool = True,
     redact_private_ip: bool = False,
+    redaction_label: str = DEFAULT_REDACTION_LABEL,
 ) -> list[Rule]:
     """Return the ordered list of active rules based on the supplied flags.
 
@@ -177,9 +188,9 @@ def get_rules(
       8. PRIVATE_IP     (only when redact_private_ip=True)
     """
     rules: list[Rule] = [
-        _CONNECTION_STRING,
-        _BEARER_TOKEN,
-        _KEY_VALUE_SECRET,
+        _connection_string_rule(redaction_label),
+        _bearer_token_rule(redaction_label),
+        _key_value_secret_rule(redaction_label),
         _JWT_LIKE,
     ]
 

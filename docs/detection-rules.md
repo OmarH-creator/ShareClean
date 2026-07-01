@@ -6,6 +6,10 @@ The goal is practical redaction of common accidental leaks while preserving enou
 
 ## Default Rules
 
+Generic secret rules use `[REDACTED]` by default. You can change that label
+for key-value secrets, Bearer tokens, and connection string passwords with
+`--redaction-label TEXT`.
+
 | Rule ID | Enabled by default | Replacement | Notes |
 |---|---:|---|---|
 | `CONNECTION_STRING` | Yes | Password segment becomes `[REDACTED]` | Preserves scheme, username, host, port, path, and database name. |
